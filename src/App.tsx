@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import html2pdf from 'html2pdf.js';
-import { Upload, Download, FileText, FileSpreadsheet, MessageCircle, Menu, X, Clock } from 'lucide-react';
+import { Upload, Download, FileText, FileSpreadsheet, MessageCircle, Menu, X, Clock, Settings, Save, Plus, ArrowRight, Edit, Check } from 'lucide-react';
 
 interface Employee {
   serial: number;
@@ -20,6 +20,31 @@ interface Employee {
   takaful: number;
   net: number;
 }
+
+
+interface Contact {
+  id: string;
+  name: string;
+  phone: string;
+}
+
+const predefinedNames = [
+  "حسن محمد حسن احمد",
+  "محمد عمر محمد كامل",
+  "رندا سعيد سيد عبدالخالق",
+  "حبيبه شوقى شاكر السيد",
+  "بسمه محمد زكريا سالم",
+  "محمد احمد عباس محمد",
+  "اسماء صالح على محمد",
+  "فارس عمرو السيد علي",
+  "نجوى محمد صديق فهمي",
+  "امنيه اشرف سيد محمد",
+  "ملك هيثم حلمي عبد المعطي",
+  "تقى محمد عبدالحميد مصطفى",
+  "احمد عوض الله جمال عوض الله",
+  "سعيد محمد عادل حلمي",
+  "منه احمد محمد حسن عبود"
+];
 
 const columnAliases: Record<string, string[]> = {
   code: ['كود الموظف', 'الكود الجديد', 'الكود الوظيفي', 'Code', 'ID'],
@@ -70,12 +95,27 @@ export default function App() {
   const [allSelected, setAllSelected] = useState(false);
   const [selectedCycle, setSelectedCycle] = useState(cycleOptions[6].value);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editFormData, setEditFormData] = useState<Employee | null>(null);
   const [savedMonths, setSavedMonths] = useState<Record<string, Employee[]>>({});
   const pdfRenderContainerRef = useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     const saved = JSON.parse(localStorage.getItem('morattaba_saved_months') || '{}');
     setSavedMonths(saved);
+    
+    try {
+      const encryptedContacts = localStorage.getItem('morattaba_contacts');
+      if (encryptedContacts) {
+        setContacts(JSON.parse(decodeURIComponent(atob(encryptedContacts))));
+      } else {
+        setContacts(predefinedNames.map((name, i) => ({ id: String(i), name, phone: '' })));
+      }
+    } catch (e) {
+      setContacts(predefinedNames.map((name, i) => ({ id: String(i), name, phone: '' })));
+    }
   }, []);
 
   const saveCurrentData = (data: Employee[], cycle: string) => {
@@ -244,9 +284,9 @@ export default function App() {
     const opt = {
       margin: 15,
       filename: 'Employee_Salary_Slips_v2_Selected.pdf',
-      image: { type: 'jpeg', quality: 0.98 },
+      image: { type: 'jpeg' as 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as 'portrait' }
     };
 
     html2pdf().set(opt).from(wrapper).save().then(() => {
@@ -308,9 +348,9 @@ export default function App() {
     const opt = {
       margin: 15,
       filename: `Salary_${emp.name}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
+      image: { type: 'jpeg' as 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as 'portrait' }
     };
 
     try {
@@ -326,7 +366,78 @@ export default function App() {
     }
   };
 
+
+  const saveContacts = (newContacts: Contact[]) => {
+    setContacts(newContacts);
+    const encrypted = btoa(encodeURIComponent(JSON.stringify(newContacts)));
+    localStorage.setItem('morattaba_contacts', encrypted);
+  };
+
+  const handleSettingsClick = () => {
+    const pwd = window.prompt('أدخل كلمة المرور:');
+    if (pwd === '0000') {
+      setIsSettingsOpen(true);
+      setIsSidebarOpen(true);
+    } else if (pwd !== null) {
+      alert('كلمة المرور خاطئة');
+    }
+  };
+
+  const handleEditClick = (idx: number, emp: Employee) => {
+    setEditingIndex(idx);
+    setEditFormData({ ...emp });
+  };
+
+  const handleEditChange = (field: keyof Employee, value: string) => {
+    if (!editFormData) return;
+    const numVal = parseFloat(value) || 0;
+    const updated = { ...editFormData, [field]: field === 'name' || field === 'code' ? value : numVal };
+    
+    // Recalculate net if numeric field
+    if (['basic', 'trans', 'bonus', 'overtime', 'advance', 'insur', 'tax', 'penalty', 'takaful'].includes(field)) {
+      updated.net = updated.basic + updated.trans + updated.bonus + updated.overtime - updated.advance - updated.insur - updated.tax - updated.penalty - updated.takaful;
+    }
+    
+    setEditFormData(updated);
+  };
+
+  const handleEditSave = (idx: number) => {
+    if (!editFormData) return;
+    const newData = [...employeesData];
+    newData[idx] = editFormData;
+    setEmployeesData(newData);
+    saveCurrentData(newData, selectedCycle);
+    setEditingIndex(null);
+    setEditFormData(null);
+  };
+
+  const handleEditCancel = () => {
+    setEditingIndex(null);
+    setEditFormData(null);
+  };
+
   const shareEmployeePdf = async (emp: Employee) => {
+    const contact = contacts.find(c => c.name.trim() === emp.name.trim());
+    if (contact && contact.phone) {
+      const pdfBlob = await generatePdfBlobForEmployee(emp);
+      if (!pdfBlob) return;
+      
+      const file = new File([pdfBlob], `Salary_${emp.name}.pdf`, { type: 'application/pdf' });
+      
+      // Auto-download file for WhatsApp attachment later
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Salary_${emp.name}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      const text = encodeURIComponent(`مرحباً ${emp.name}، مرفق قسيمة تفاصيل الراتب الخاصة بك.`);
+      const waLink = `https://wa.me/${contact.phone}?text=${text}`;
+      window.open(waLink, '_blank');
+      return;
+    }
+
     const pdfBlob = await generatePdfBlobForEmployee(emp);
     if (!pdfBlob) return;
 
@@ -396,35 +507,100 @@ export default function App() {
         ></div>
       )}
 
+      
       {/* Sidebar */}
-      <div className={`fixed top-0 right-0 h-full w-80 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-        <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-          <h2 className="font-bold text-lg text-slate-800">مرتبات الأشهر</h2>
-          <button onClick={() => setIsSidebarOpen(false)} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
-            <X className="w-5 h-5 text-slate-500" />
-          </button>
-        </div>
-        <div className="p-4 overflow-y-auto h-[calc(100%-60px)]">
-          {Object.keys(savedMonths).length === 0 ? (
-            <p className="text-slate-500 text-sm text-center mt-10">لا توجد سجلات محفوظة حالياً</p>
-          ) : (
-            <div className="space-y-2">
-              {Object.keys(savedMonths).map((cycle) => (
-                <button
-                  key={cycle}
-                  onClick={() => loadMonth(cycle)}
-                  className="w-full text-right p-3 rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 transition-colors flex items-center gap-3"
-                >
-                  <Clock className="w-5 h-5 text-indigo-500 shrink-0" />
-                  <div>
-                    <div className="font-bold text-slate-700 text-sm">{cycle}</div>
-                    <div className="text-xs text-slate-500 mt-1">{savedMonths[cycle].length} موظف</div>
-                  </div>
+      <div className={`fixed top-0 right-0 h-full w-80 sm:w-96 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        {isSettingsOpen ? (
+          <>
+            <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+              <div className="flex items-center gap-3">
+                <button onClick={() => setIsSettingsOpen(false)} className="p-1.5 hover:bg-slate-200 rounded-full transition-colors">
+                  <ArrowRight className="w-5 h-5 text-slate-600" />
                 </button>
-              ))}
+                <h2 className="font-bold text-lg text-slate-800">إعدادات الأرقام</h2>
+              </div>
+              <button onClick={() => { setIsSettingsOpen(false); setIsSidebarOpen(false); }} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
             </div>
-          )}
-        </div>
+            <div className="p-4 overflow-y-auto h-[calc(100%-60px)] bg-slate-50">
+              <div className="space-y-4">
+                {contacts.map((contact, idx) => (
+                  <div key={contact.id} className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex flex-col gap-2">
+                    <input 
+                      type="text" 
+                      value={contact.name}
+                      onChange={(e) => {
+                        const newContacts = [...contacts];
+                        newContacts[idx].name = e.target.value;
+                        saveContacts(newContacts);
+                      }}
+                      placeholder="اسم الموظف"
+                      className="text-sm font-bold bg-transparent border-none outline-none w-full text-slate-800"
+                    />
+                    <input 
+                      type="text" 
+                      value={contact.phone}
+                      onChange={(e) => {
+                        const newContacts = [...contacts];
+                        newContacts[idx].phone = e.target.value;
+                        saveContacts(newContacts);
+                      }}
+                      placeholder="رقم الواتساب (مثال: 201xxxxxxxxx)"
+                      className="text-xs bg-slate-100 p-2 rounded border border-slate-200 outline-none focus:border-indigo-400 w-full text-slate-700"
+                      dir="ltr"
+                    />
+                  </div>
+                ))}
+                
+                <button
+                  onClick={() => {
+                    const newContacts = [...contacts, { id: Date.now().toString(), name: 'موظف جديد', phone: '' }];
+                    saveContacts(newContacts);
+                  }}
+                  className="w-full py-3 border-2 border-dashed border-indigo-300 text-indigo-600 rounded-lg font-bold text-sm hover:bg-indigo-50 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" /> إضافة اسم جديد
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+              <h2 className="font-bold text-lg text-slate-800">مرتبات الأشهر</h2>
+              <div className="flex items-center gap-1">
+                <button onClick={handleSettingsClick} className="p-2 hover:bg-slate-200 rounded-full transition-colors" title="الإعدادات">
+                  <Settings className="w-5 h-5 text-slate-500" />
+                </button>
+                <button onClick={() => setIsSidebarOpen(false)} className="p-2 hover:bg-slate-200 rounded-full transition-colors" title="إغلاق">
+                  <X className="w-5 h-5 text-slate-500" />
+                </button>
+              </div>
+            </div>
+            <div className="p-4 overflow-y-auto h-[calc(100%-60px)]">
+              {Object.keys(savedMonths).length === 0 ? (
+                <p className="text-slate-500 text-sm text-center mt-10">لا توجد سجلات محفوظة حالياً</p>
+              ) : (
+                <div className="space-y-2">
+                  {Object.keys(savedMonths).map((cycle) => (
+                    <button
+                      key={cycle}
+                      onClick={() => loadMonth(cycle)}
+                      className="w-full text-right p-3 rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 transition-colors flex items-center gap-3"
+                    >
+                      <Clock className="w-5 h-5 text-indigo-500 shrink-0" />
+                      <div>
+                        <div className="font-bold text-slate-700 text-sm">{cycle}</div>
+                        <div className="text-xs text-slate-500 mt-1">{savedMonths[cycle].length} موظف</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* KPI Grid */}
@@ -517,7 +693,33 @@ export default function App() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {employeesData.map((emp, idx) => (
+                                        {employeesData.map((emp, idx) => (
+                      editingIndex === idx && editFormData ? (
+                        <tr key={idx} className="bg-indigo-50 transition-colors">
+                          <td className="p-2 text-center">
+                             <button onClick={() => handleEditSave(idx)} className="text-emerald-600 bg-emerald-100 p-1.5 rounded-full hover:bg-emerald-200">
+                               <Check className="w-4 h-4" />
+                             </button>
+                             <button onClick={handleEditCancel} className="text-rose-600 bg-rose-100 p-1.5 rounded-full hover:bg-rose-200 mt-1">
+                               <X className="w-4 h-4" />
+                             </button>
+                          </td>
+                          <td className="p-2 text-center text-slate-500">{emp.serial}</td>
+                          <td className="p-2 font-mono font-bold text-indigo-700">{emp.code}</td>
+                          <td className="p-2 font-bold">{emp.name}</td>
+                          <td className="p-2"><input type="number" value={editFormData.days} onChange={e => handleEditChange('days', e.target.value)} className="w-16 border rounded px-1 py-1 text-center text-xs" /></td>
+                          <td className="p-2"><input type="number" value={editFormData.advance} onChange={e => handleEditChange('advance', e.target.value)} className="w-20 border rounded px-1 py-1 text-center text-xs text-rose-600" /></td>
+                          <td className="p-2"><input type="number" value={editFormData.basic} onChange={e => handleEditChange('basic', e.target.value)} className="w-20 border rounded px-1 py-1 text-center text-xs" /></td>
+                          <td className="p-2"><input type="number" value={editFormData.trans} onChange={e => handleEditChange('trans', e.target.value)} className="w-16 border rounded px-1 py-1 text-center text-xs" /></td>
+                          <td className="p-2"><input type="number" value={editFormData.bonus} onChange={e => handleEditChange('bonus', e.target.value)} className="w-16 border rounded px-1 py-1 text-center text-xs text-emerald-600" /></td>
+                          <td className="p-2"><input type="number" value={editFormData.overtime} onChange={e => handleEditChange('overtime', e.target.value)} className="w-16 border rounded px-1 py-1 text-center text-xs" /></td>
+                          <td className="p-2"><input type="number" value={editFormData.insur} onChange={e => handleEditChange('insur', e.target.value)} className="w-16 border rounded px-1 py-1 text-center text-xs" /></td>
+                          <td className="p-2"><input type="number" value={editFormData.tax} onChange={e => handleEditChange('tax', e.target.value)} className="w-16 border rounded px-1 py-1 text-center text-xs text-rose-600" /></td>
+                          <td className="p-2"><input type="number" value={editFormData.penalty} onChange={e => handleEditChange('penalty', e.target.value)} className="w-16 border rounded px-1 py-1 text-center text-xs text-rose-600" /></td>
+                          <td className="p-2"><input type="number" value={editFormData.takaful} onChange={e => handleEditChange('takaful', e.target.value)} className="w-16 border rounded px-1 py-1 text-center text-xs" /></td>
+                          <td className="p-2 text-center font-black bg-indigo-100 text-indigo-900">{editFormData.net.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                        </tr>
+                      ) : (
                       <tr
                         key={idx}
                         className={`${idx % 2 === 0 ? 'bg-indigo-50/50' : 'bg-white'} hover:bg-indigo-100/50 transition-colors cursor-pointer`}
@@ -535,14 +737,23 @@ export default function App() {
                         <td className="p-3 font-mono font-bold text-indigo-700">{emp.code}</td>
                         <td className="p-3">
                           <div className="flex items-center justify-start gap-2">
-                            <span className="font-bold">{emp.name}</span>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); shareEmployeePdf(emp); }}
-                              className="text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 p-1 rounded-full transition-colors shrink-0"
-                              title="مشاركة عبر واتساب"
-                            >
-                              <MessageCircle className="w-4 h-4" />
-                            </button>
+                            <span className="font-bold whitespace-nowrap">{emp.name}</span>
+                            <div className="flex gap-1 shrink-0">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); shareEmployeePdf(emp); }}
+                                className="text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 p-1.5 rounded-full transition-colors"
+                                title="مشاركة عبر واتساب"
+                              >
+                                <MessageCircle className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleEditClick(idx, emp); }}
+                                className="text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 p-1.5 rounded-full transition-colors"
+                                title="تعديل"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         </td>
                         <td className="p-3 text-center">{emp.days}</td>
@@ -557,6 +768,7 @@ export default function App() {
                         <td className="p-3 text-center">{emp.takaful.toLocaleString('en-US')}</td>
                         <td className="p-3 text-center font-black bg-indigo-50 text-indigo-900">{emp.net.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                       </tr>
+                      )
                     ))}
                   </tbody>
               </table>
