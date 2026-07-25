@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import html2pdf from 'html2pdf.js';
-import { Upload, Download, FileText, FileSpreadsheet, MessageCircle, Menu, X, Clock, Settings, Save, Plus, ArrowRight, Edit, Check } from 'lucide-react';
+import { Upload, Download, FileText, FileSpreadsheet, MessageCircle, Menu, X, Clock, Settings, Save, Plus, ArrowRight, Edit, Check, Trash2 } from 'lucide-react';
 
 interface Employee {
   serial: number;
@@ -383,6 +383,15 @@ export default function App() {
     }
   };
 
+  const handleDeleteSelected = () => {
+    if (window.confirm('هل تريد بالتأكيد حذف السجلات المحددة؟ (نعم للحذف، لا للإلغاء)')) {
+      const remaining = employeesData.filter(emp => !emp.selected).map((emp, i) => ({ ...emp, serial: i + 1 }));
+      setEmployeesData(remaining);
+      saveCurrentData(remaining, selectedCycle);
+      setAllSelected(false);
+    }
+  };
+
   const handleEditClick = (idx: number, emp: Employee) => {
     setEditingIndex(idx);
     setEditFormData({ ...emp });
@@ -632,6 +641,14 @@ export default function App() {
                    className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1.5 rounded text-xs font-bold transition-colors"
                  >
                    {allSelected ? 'إلغاء تحديد الكل' : 'تحديد جميع اللاينات'}
+                 </button>
+             )}
+             {hasSelected && (
+                <button
+                   onClick={handleDeleteSelected}
+                   className="bg-rose-100 hover:bg-rose-200 text-rose-700 px-3 py-1.5 rounded text-xs font-bold transition-colors flex items-center gap-1"
+                 >
+                   <Trash2 className="w-4 h-4" /> حذف المحددة
                  </button>
              )}
           </div>
