@@ -447,8 +447,8 @@ export default function App() {
 
       {/* Main Content Area */}
       <div className="flex-1 mx-4 mb-4 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
-        <div className="flex items-center justify-between p-3 border-b bg-slate-50">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 border-b bg-slate-50 gap-3">
+          <div className="flex flex-wrap items-center gap-4">
              <h2 className="font-bold text-slate-700">سجل البيانات الحالية</h2>
              {employeesData.length > 0 && (
                 <button
@@ -459,30 +459,32 @@ export default function App() {
                  </button>
              )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <select
               value={selectedCycle}
               onChange={(e) => handleCycleChange(e.target.value)}
-              className="bg-white border border-slate-300 text-slate-700 px-3 py-1.5 rounded text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500"
+              className="bg-white border border-slate-300 text-slate-700 px-3 py-1.5 rounded text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 flex-1 sm:flex-none"
             >
               {cycleOptions.map((opt, i) => (
                 <option key={i} value={opt.value}>{opt.label}</option>
               ))}
             </select>
-            <button
-              onClick={exportExcel}
-              disabled={!hasSelected}
-              className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors disabled:cursor-not-allowed flex items-center gap-1"
-            >
-              <FileSpreadsheet className="w-4 h-4" /> تصدير Excel
-            </button>
-            <button
-              onClick={exportPdf}
-              disabled={!hasSelected}
-              className="bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 disabled:text-slate-400 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors disabled:cursor-not-allowed flex items-center gap-1"
-            >
-              <FileText className="w-4 h-4" /> تصدير PDF
-            </button>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                onClick={exportExcel}
+                disabled={!hasSelected}
+                className="flex-1 sm:flex-none justify-center bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors disabled:cursor-not-allowed flex items-center gap-1"
+              >
+                <FileSpreadsheet className="w-4 h-4 shrink-0" /> تصدير Excel
+              </button>
+              <button
+                onClick={exportPdf}
+                disabled={!hasSelected}
+                className="flex-1 sm:flex-none justify-center bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 disabled:text-slate-400 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors disabled:cursor-not-allowed flex items-center gap-1"
+              >
+                <FileText className="w-4 h-4 shrink-0" /> تصدير PDF
+              </button>
+            </div>
           </div>
         </div>
         <div className="flex-1 overflow-auto relative">
