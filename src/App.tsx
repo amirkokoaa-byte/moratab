@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import html2pdf from 'html2pdf.js';
-import { Upload, Download, FileText, FileSpreadsheet, MessageCircle, Menu, X, Clock, Settings, Save, Plus, ArrowRight, Edit, Check, Trash2 } from 'lucide-react';
+import { Upload, Download, FileText, FileSpreadsheet, MessageCircle, Menu, X, Clock, Settings, Save, Plus, ArrowRight, Edit, Check, Trash2, ChevronDown, ChevronLeft } from 'lucide-react';
 
 interface Employee {
   serial: number;
@@ -96,6 +96,7 @@ export default function App() {
   const [selectedCycle, setSelectedCycle] = useState(cycleOptions[6].value);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [expandedYears, setExpandedYears] = useState<Record<string, boolean>>({ [new Date().getFullYear().toString()]: true });
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editFormData, setEditFormData] = useState<Employee | null>(null);
@@ -591,19 +592,44 @@ export default function App() {
               {Object.keys(savedMonths).length === 0 ? (
                 <p className="text-slate-500 text-sm text-center mt-10">لا توجد سجلات محفوظة حالياً</p>
               ) : (
-                <div className="space-y-2">
-                  {Object.keys(savedMonths).map((cycle) => (
-                    <button
-                      key={cycle}
-                      onClick={() => loadMonth(cycle)}
-                      className="w-full text-right p-3 rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 transition-colors flex items-center gap-3"
-                    >
-                      <Clock className="w-5 h-5 text-indigo-500 shrink-0" />
-                      <div>
-                        <div className="font-bold text-slate-700 text-sm">{cycle}</div>
-                        <div className="text-xs text-slate-500 mt-1">{savedMonths[cycle].length} موظف</div>
-                      </div>
-                    </button>
+                <div className="space-y-4">
+                  {Object.entries(
+                    Object.keys(savedMonths).reduce((acc: Record<string, string[]>, cycle) => {
+                      const match = cycle.match(/\d{4}$/);
+                      const year = match ? match[0] : new Date().getFullYear().toString();
+                      if (!acc[year]) acc[year] = [];
+                      acc[year].push(cycle);
+                      return acc;
+                    }, {})
+                  )
+                  .sort(([yearA], [yearB]) => parseInt(yearB) - parseInt(yearA)) // Descending year
+                  .map(([year, cycles]) => (
+                    <div key={year} className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+                      <button
+                        onClick={() => setExpandedYears(prev => ({ ...prev, [year]: !prev[year] }))}
+                        className="w-full flex items-center justify-between p-3 bg-slate-100 hover:bg-slate-200 transition-colors"
+                      >
+                        <h3 className="font-bold text-slate-800">عام {year}</h3>
+                        {expandedYears[year] ? <ChevronDown className="w-5 h-5 text-slate-500" /> : <ChevronLeft className="w-5 h-5 text-slate-500" />}
+                      </button>
+                      {expandedYears[year] && (
+                        <div className="p-2 space-y-2 bg-slate-50">
+                          {cycles.map((cycle) => (
+                            <button
+                              key={cycle}
+                              onClick={() => loadMonth(cycle)}
+                              className="w-full text-right p-3 rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 transition-colors flex items-center gap-3 bg-white"
+                            >
+                              <Clock className="w-5 h-5 text-indigo-500 shrink-0" />
+                              <div>
+                                <div className="font-bold text-slate-700 text-sm">{cycle}</div>
+                                <div className="text-xs text-slate-500 mt-1">{savedMonths[cycle].length} موظف</div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
               )}
