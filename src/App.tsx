@@ -100,12 +100,19 @@ export default function App() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editFormData, setEditFormData] = useState<Employee | null>(null);
+  const [logoImage, setLogoImage] = useState<string | null>(null);
   const [savedMonths, setSavedMonths] = useState<Record<string, Employee[]>>({});
   const pdfRenderContainerRef = useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     const saved = JSON.parse(localStorage.getItem('morattaba_saved_months') || '{}');
     setSavedMonths(saved);
+    
+    const savedLogo = localStorage.getItem('morattaba_logo');
+    if (savedLogo) {
+      setLogoImage(savedLogo);
+    }
+
     
     try {
       const encryptedContacts = localStorage.getItem('morattaba_contacts');
@@ -125,6 +132,30 @@ export default function App() {
     saved[cycle] = data;
     localStorage.setItem('morattaba_saved_months', JSON.stringify(saved));
     setSavedMonths(saved);
+  };
+
+  const deleteCycle = (cycle: string) => {
+    if (window.confirm(`هل أنت متأكد من حذف بيانات "${cycle}"؟`)) {
+      const saved = { ...savedMonths };
+      delete saved[cycle];
+      localStorage.setItem('morattaba_saved_months', JSON.stringify(saved));
+      setSavedMonths(saved);
+      if (selectedCycle === cycle) {
+        setEmployeesData([]);
+      }
+    }
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const base64 = evt.target?.result as string;
+      setLogoImage(base64);
+      localStorage.setItem('morattaba_logo', base64);
+    };
+    reader.readAsDataURL(file);
   };
 
   const loadMonth = (cycle: string) => {
@@ -274,7 +305,7 @@ export default function App() {
             </tbody>
         </table>
         <div style="margin-top: 30px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px dashed #cbd5e1; padding-top: 10px;">
-            تم الإصدار آلياً بواسطة نظام "مُرَتَّبَا" لإدارة الرواتب والأجور.
+            تم الإصدار بواسطة نظام "مرتبا" لإدارة الرواتب AmirLamay
         </div>
       `;
       wrapper.appendChild(slip);
@@ -315,9 +346,12 @@ export default function App() {
     slip.style.borderRadius = "12px";
     
     slip.innerHTML = `
-      <div style="text-align: center; border-bottom: 2px solid #1f497d; padding-bottom: 15px; margin-bottom: 25px;">
-          <h1 style="color: #1f497d; font-size: 22px; font-weight: 800; margin: 0 0 5px 0;">تفاصيل الراتب</h1>
-          <p style="color: #64748b; font-size: 13px; margin: 0;">${selectedCycle} - كود الموظف: ${emp.code}</p>
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1f497d; padding-bottom: 15px; margin-bottom: 25px;">
+          <div style="text-align: right;">
+              <h1 style="color: #1f497d; font-size: 22px; font-weight: 800; margin: 0 0 5px 0;">تفاصيل الراتب</h1>
+              <p style="color: #64748b; font-size: 13px; margin: 0;">${selectedCycle} - كود الموظف: ${emp.code}</p>
+          </div>
+          ${logoImage ? `<img src="${logoImage}" style="max-height: 50px; max-width: 100px; object-fit: contain;" />` : ''}
       </div>
       <table style="width: 100%; border-collapse: collapse; font-size: 15px;">
           <tbody>
@@ -340,7 +374,7 @@ export default function App() {
           </tbody>
       </table>
       <div style="margin-top: 30px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px dashed #cbd5e1; padding-top: 10px;">
-          تم الإصدار آلياً بواسطة نظام "مُرَتَّبَا" لإدارة الرواتب والأجور.
+          تم الإصدار بواسطة نظام "مرتبا" لإدارة الرواتب AmirLamay
       </div>
     `;
     wrapper.appendChild(slip);
@@ -527,7 +561,7 @@ export default function App() {
                 <button onClick={() => setIsSettingsOpen(false)} className="p-1.5 hover:bg-slate-200 rounded-full transition-colors">
                   <ArrowRight className="w-5 h-5 text-slate-600" />
                 </button>
-                <h2 className="font-bold text-lg text-slate-800">إعدادات الأرقام</h2>
+                <h2 className="font-bold text-lg text-slate-800">الإعدادات</h2>
               </div>
               <button onClick={() => { setIsSettingsOpen(false); setIsSidebarOpen(false); }} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
                 <X className="w-5 h-5 text-slate-500" />
@@ -535,6 +569,29 @@ export default function App() {
             </div>
             <div className="p-4 overflow-y-auto h-[calc(100%-60px)] bg-slate-50">
               <div className="space-y-4">
+                <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex flex-col items-center justify-center gap-3">
+                  <h3 className="font-bold text-slate-700 text-sm w-full text-right">شعار الشركة (اللوجو)</h3>
+                  <label className="cursor-pointer group relative flex flex-col items-center justify-center w-32 h-32 rounded-lg border-2 border-dashed border-slate-300 hover:border-indigo-400 bg-slate-50 overflow-hidden transition-colors">
+                    <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                    {logoImage ? (
+                      <>
+                        <img src={logoImage} alt="Logo" className="w-full h-full object-contain" />
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="text-white text-xs font-bold">تغيير الصورة</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-8 h-8 text-slate-400 mb-2 group-hover:text-indigo-400 transition-colors" />
+                        <span className="text-xs text-slate-500 font-medium">اختر صورة</span>
+                      </>
+                    )}
+                  </label>
+                </div>
+                
+                <div className="pt-2">
+                  <h3 className="font-bold text-slate-700 text-sm mb-3 text-right">أرقام الموظفين</h3>
+                </div>
                 {contacts.map((contact, idx) => (
                   <div key={contact.id} className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex flex-col gap-2">
                     <input 
@@ -615,17 +672,25 @@ export default function App() {
                       {expandedYears[year] && (
                         <div className="p-2 space-y-2 bg-slate-50">
                           {cycles.map((cycle) => (
-                            <button
-                              key={cycle}
-                              onClick={() => loadMonth(cycle)}
-                              className="w-full text-right p-3 rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 transition-colors flex items-center gap-3 bg-white"
-                            >
-                              <Clock className="w-5 h-5 text-indigo-500 shrink-0" />
-                              <div>
-                                <div className="font-bold text-slate-700 text-sm">{cycle}</div>
-                                <div className="text-xs text-slate-500 mt-1">{savedMonths[cycle].length} موظف</div>
-                              </div>
-                            </button>
+                            <div key={cycle} className="relative group w-full flex rounded-lg border border-slate-200 hover:border-indigo-300 bg-white hover:bg-indigo-50 transition-colors overflow-hidden">
+                              <button
+                                onClick={() => loadMonth(cycle)}
+                                className="flex-1 text-right p-3 flex items-center gap-3"
+                              >
+                                <Clock className="w-5 h-5 text-indigo-500 shrink-0" />
+                                <div>
+                                  <div className="font-bold text-slate-700 text-sm">{cycle}</div>
+                                  <div className="text-xs text-slate-500 mt-1">{savedMonths[cycle].length} موظف</div>
+                                </div>
+                              </button>
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); deleteCycle(cycle); }}
+                                className="p-3 text-rose-500 hover:bg-rose-100 transition-colors flex items-center justify-center shrink-0"
+                                title="حذف السجل"
+                              >
+                                <Trash2 className="w-5 h-5" />
+                              </button>
+                            </div>
                           ))}
                         </div>
                       )}
