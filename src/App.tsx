@@ -101,6 +101,7 @@ export default function App() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editFormData, setEditFormData] = useState<Employee | null>(null);
   const [logoImage, setLogoImage] = useState<string | null>(null);
+  const [pendingLogo, setPendingLogo] = useState<string | null>(null);
   const [savedMonths, setSavedMonths] = useState<Record<string, Employee[]>>({});
   const pdfRenderContainerRef = useRef<HTMLDivElement>(null);
 
@@ -152,10 +153,17 @@ export default function App() {
     const reader = new FileReader();
     reader.onload = (evt) => {
       const base64 = evt.target?.result as string;
-      setLogoImage(base64);
-      localStorage.setItem('morattaba_logo', base64);
+      setPendingLogo(base64);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleSaveLogo = () => {
+    if (pendingLogo) {
+      setLogoImage(pendingLogo);
+      localStorage.setItem('morattaba_logo', pendingLogo);
+      setPendingLogo(null);
+    }
   };
 
   const loadMonth = (cycle: string) => {
@@ -573,9 +581,9 @@ export default function App() {
                   <h3 className="font-bold text-slate-700 text-sm w-full text-right">شعار الشركة (اللوجو)</h3>
                   <label className="cursor-pointer group relative flex flex-col items-center justify-center w-32 h-32 rounded-lg border-2 border-dashed border-slate-300 hover:border-indigo-400 bg-slate-50 overflow-hidden transition-colors">
                     <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
-                    {logoImage ? (
+                    {pendingLogo || logoImage ? (
                       <>
-                        <img src={logoImage} alt="Logo" className="w-full h-full object-contain" />
+                        <img src={(pendingLogo || logoImage) as string} alt="Logo" className="w-full h-full object-contain" />
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                           <span className="text-white text-xs font-bold">تغيير الصورة</span>
                         </div>
@@ -587,6 +595,14 @@ export default function App() {
                       </>
                     )}
                   </label>
+                  {pendingLogo && (
+                    <button
+                      onClick={handleSaveLogo}
+                      className="mt-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Save className="w-4 h-4" /> حفظ الصورة
+                    </button>
+                  )}
                 </div>
                 
                 <div className="pt-2">
