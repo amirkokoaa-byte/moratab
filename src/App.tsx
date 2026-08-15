@@ -483,7 +483,7 @@ export default function App() {
   const totalNet = employeesData.reduce((sum, emp) => sum + emp.net, 0);
 
   return (
-    <div className="flex flex-col h-screen w-full bg-slate-50 text-slate-800 font-sans" dir="rtl">
+    <div className="flex flex-col min-h-screen md:h-screen w-full bg-slate-50 text-slate-800 font-sans overflow-x-hidden" dir="rtl">
       {/* Header */}
       <header className="bg-indigo-950 text-white px-6 py-4 flex justify-between items-center shrink-0 border-b-4 border-indigo-500">
         <div className="flex items-center gap-4">
@@ -638,26 +638,9 @@ export default function App() {
         )}
       </div>
 
-      {/* KPI Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 shrink-0">
-        <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-          <p className="text-slate-500 text-xs mb-1 font-bold uppercase tracking-wider">إجمالي الموظفين</p>
-          <p className="text-2xl font-black text-slate-900">{totalCount}</p>
-        </div>
-        <div className="bg-white p-3 rounded-xl border border-indigo-200 shadow-sm ring-2 ring-indigo-500/10">
-          <p className="text-indigo-600 text-xs mb-1 font-bold uppercase tracking-wider">تم تحديدهم للتصدير</p>
-          <p className="text-2xl font-black text-indigo-700">{selectedCount}</p>
-        </div>
-        <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-          <p className="text-slate-500 text-xs mb-1 font-bold uppercase tracking-wider">إجمالي الصافي</p>
-          <p className="text-2xl font-black text-slate-900 text-left tracking-tighter">
-            {totalNet.toLocaleString('en-US', { minimumFractionDigits: 2 })} <span className="text-sm font-normal">ج.م</span>
-          </p>
-        </div>
-      </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 mx-4 mb-4 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
+      <div className="flex-1 mx-2 sm:mx-4 mb-4 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden min-h-[500px] md:min-h-0">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 border-b bg-slate-50 gap-3">
           <div className="flex flex-wrap items-center gap-4">
              <h2 className="font-bold text-slate-700">سجل البيانات الحالية</h2>
@@ -708,8 +691,8 @@ export default function App() {
         </div>
         <div className="flex-1 overflow-auto relative">
            {employeesData.length > 0 ? (
-              <table className="w-full text-xs text-right border-collapse">
-                  <thead className="bg-slate-900 text-white sticky top-0 z-10">
+              <table className="w-full min-w-[900px] text-xs text-right border-collapse">
+                  <thead className="bg-slate-900 text-white sticky top-0 z-10 whitespace-nowrap">
                     <tr>
                       <th className="p-3 border-l border-slate-700 w-10 text-center">
                         <input
@@ -824,6 +807,24 @@ export default function App() {
         </div>
       </div>
       
+      {/* KPI Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4 p-2 sm:p-4 shrink-0">
+        <div className="bg-white p-2 sm:p-3 rounded-xl border border-slate-200 shadow-sm col-span-2 md:col-span-1">
+          <p className="text-slate-500 text-xs mb-1 font-bold uppercase tracking-wider">إجمالي الموظفين</p>
+          <p className="text-2xl font-black text-slate-900">{totalCount}</p>
+        </div>
+        <div className="bg-white p-3 rounded-xl border border-indigo-200 shadow-sm ring-2 ring-indigo-500/10">
+          <p className="text-indigo-600 text-xs mb-1 font-bold uppercase tracking-wider">تم تحديدهم للتصدير</p>
+          <p className="text-2xl font-black text-indigo-700">{selectedCount}</p>
+        </div>
+        <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+          <p className="text-slate-500 text-xs mb-1 font-bold uppercase tracking-wider">إجمالي الصافي</p>
+          <p className="text-2xl font-black text-slate-900 text-left tracking-tighter">
+            {totalNet.toLocaleString('en-US', { minimumFractionDigits: 2 })} <span className="text-sm font-normal">ج.م</span>
+          </p>
+        </div>
+      </div>
+
       {/* Footer */}
       <footer className="bg-slate-900 text-slate-400 px-6 py-2 flex justify-between items-center shrink-0 text-[10px]">
          <div>&copy; {new Date().getFullYear()} مُرَتَّبَا - جميع الحقوق محفوظة</div>
